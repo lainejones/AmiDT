@@ -1,0 +1,42 @@
+AmiDT - fast, small picture datatypes
+=====================================
+
+Datatypes let MultiView, AmiFM's View and every other datatypes program
+show pictures. AmiDT's are written to be quick on a plain 68020/68030 and to
+keep memory use low.
+
+New formats (nothing on the system is replaced):
+  Targa (TGA)   colour-mapped, true colour, grey; plain or RLE; any origin
+  PCX           mono, 16 colours (EGA), 4-bit, 256 colours, 24-bit
+  ICO           Windows icons (the biggest picture in the icon; BMP or PNG inside)
+  QOI           "Quite OK Image" pictures
+
+Faster PNG, GIF and BMP (optional - replaces the system's classes):
+  They make the picture with up to 256 colours themselves (true colour is
+  dithered), so the system does not have to convert it afterwards. On an
+  A1200 with a 68030 at 50 MHz, a 640x480 picture:
+
+                      AmiDT            AmigaOS 3.2
+    PNG true colour   5.3 s,   32 KB   17.5 s, 1207 KB
+    PNG 256 colours   1.8 s            3.7 s
+    BMP true colour   1.5 s,   30 KB   12.0 s, 1213 KB
+    GIF 256 colours   3.0 s            4.7 s
+
+  On a graphics card (RTG) screen the system's PNG datatype can show true
+  colour in full. When Picasso96 or CyberGraphX is installed, the installer
+  asks whether you view pictures on the graphics card; if so it keeps the
+  system's own PNG, GIF and BMP datatypes (AmiDT's are only added where the
+  system has none).
+
+Needs AmigaOS 3.0 or newer and a 68020 or better.
+
+Installing
+  Double-click Install_AmiDT. The system's own PNG, GIF and BMP datatypes are
+  kept in SYS:Classes/DataTypes/AmiDT-Originals; run the installer again and
+  pick Remove to put them back.
+
+JPEG
+  AmiDT has no JPEG datatype: JFIFdt44 (Aminet gfx/show/JFIFdt44.lha) is the
+  fast one. Install it, then run Install_AmiDT again and it sets JFIFdt44 to
+  its fast 256-colour mode (ENVARC:classes/datatypes/jfif44.prefs =
+  "V42MODE DITHER=ORDERED"): 4.7 s instead of 14.4 s for a 640x480 JPEG.

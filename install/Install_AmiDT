@@ -1,0 +1,165 @@
+; -------------------------------------------------------------------------
+; AmiDT - Installer script
+; Fast, small picture datatypes: new formats (TGA, PCX, ICO, QOI) and, if
+; you want, faster PNG, GIF and BMP in place of the system's own classes.
+; Needs the standard Installer (part of AmigaOS 3.1 and newer), AmigaOS 3.0
+; or newer and a 68020 or better.
+; Double-click Install_AmiDT, or from a Shell in this drawer:
+;     Installer Install_AmiDT
+; Run it again to update, or to remove AmiDT and put the system's classes back.
+; -------------------------------------------------------------------------
+(set @app-name "AmiDT")
+(complete 0)
+(set replaced 0)
+
+; ---- the machine ---------------------------------------------------------
+(if (< (/ (getversion "exec.library" (resident)) 65536) 39)
+    (abort "AmiDT needs AmigaOS 3.0 or newer."))
+(set cpu (database "cpu"))
+(if (or (= cpu "68000") (= cpu "68010"))
+    (abort "AmiDT needs a 68020 or better processor (this Amiga has a " cpu ")."))
+(if (not (exists "Classes/DataTypes/tga.datatype"))
+    (abort "Can't find the Classes drawer next to this script.\n\n"
+           "Run the installer from the drawer it came in."))
+
+(set cls "SYS:Classes/DataTypes")
+(set dev "DEVS:DataTypes")
+(set bak (tackon cls "AmiDT-Originals"))
+
+(message "Welcome to AmiDT.\n\n"
+         "AmiDT adds picture datatypes that are fast and small: MultiView, "
+         "AmiFM's View and every other datatypes program can then show "
+         "Targa (TGA), PCX, Windows icons (ICO) and QOI pictures.\n\n"
+         "It also has PNG, GIF and BMP datatypes: new on AmigaOS 3.0 and 3.1, and on "
+         "3.2 faster than the system's own (2-8 times on AGA, a quarter of the memory). "
+         "Anything replaced is kept and can be put back by running this installer again.")
+
+; ---- install or remove ---------------------------------------------------
+(set mode 0)
+(if (exists bak)
+    (set mode
+        (askchoice
+            (prompt "AmiDT is installed on this Amiga. What should the installer do?")
+            (help "Update installs this package's datatypes again.\n\n"
+                  "Remove deletes the AmiDT datatypes and puts the system's own PNG, GIF and "
+                  "BMP datatypes back from " bak ".")
+            (choices "Update AmiDT" "Remove AmiDT")
+            (default 0))))
+
+(if (= mode 1)
+    (
+        ; ours out first, then the originals back (one of them may be another TGA/PCX/... datatype)
+        ; (run takes ONE string: several are not joined - always (cat ...) the command)
+        (run (cat "Delete \"" cls "/(png|gif|bmp|tga|pcx|ico|qoi).datatype\" QUIET"))
+        (run (cat "Delete \"" dev "/(TGA|PCX|ICO|QOI)\" QUIET"))
+        (foreach bak "added-(PNG|GIF|BMP)"      ; descriptors AmiDT added (OS 3.0/3.1)
+            (run (cat "Delete \"" (tackon dev (substr @each-name 6)) "\" QUIET")))
+        (foreach bak "#?.datatype"
+            (copyfiles (source (tackon bak @each-name)) (dest cls) (nogauge)))
+        (foreach bak "(TGA|PCX|ICO|QOI)"
+            (copyfiles (source (tackon bak @each-name)) (dest dev) (nogauge)))
+        (run (cat "Delete \"" bak "\" ALL QUIET FORCE"))
+        (if (exists "C:AddDataTypes") (run "C:AddDataTypes REFRESH QUIET"))
+        (exit "AmiDT is removed and the system's datatypes are back.\n\n"
+              "Reboot so programs stop using the AmiDT classes still in memory.")
+    ))
+
+; ---- what ----------------------------------------------------------------
+; a graphics card (Picasso96 / CyberGraphX) shows the system's true colour PNGs in full colour:
+; there the system's own PNG, GIF and BMP classes are left alone (ours only where it has none)
+(set rtg (or (exists "LIBS:Picasso96API.library") (exists "LIBS:cybergraphics.library")))
+(if rtg                                         ; installed is not the same as used (an A314RTG test, say)
+    (set rtg
+        (askbool
+            (prompt "Picasso96 or CyberGraphX is installed on this Amiga.\n\n"
+                    "Do you view pictures on a graphics card screen?")
+            (help "Yes: the system's own PNG, GIF and BMP datatypes are kept, so true colour "
+                  "pictures stay in full colour on the graphics card. AmiDT's are only added "
+                  "where the system has none.\n\n"
+                  "No (the graphics card software is installed but you use the AGA/ECS screen): "
+                  "AmiDT's faster PNG, GIF and BMP datatypes take their place.")
+            (choices "Yes, keep the system's" "No, use AmiDT's")
+            (default 1))))
+(set p2text "PNG, GIF and BMP (faster than the system's, or new on OS 3.0/3.1)")
+(if rtg (set p2text "PNG, GIF and BMP where the system has none (graphics card: its own are kept)"))
+(set parts
+    (askoptions
+        (prompt "Install which parts?")
+        (help "New formats: the Targa, PCX, Windows icon and QOI datatypes. Nothing on "
+              "the system is replaced.\n\n"
+              "PNG, GIF and BMP: AmigaOS 3.0 and 3.1 can't show these at all - this adds them. "
+              "On AmigaOS 3.2 AmiDT's classes take the place of the system's. "
+              "They always make a picture of up to 256 colours (dithered from true colour), "
+              "which is what an AGA or ECS screen shows anyway and is what makes them fast.\n\n"
+              "On a graphics card (RTG) screen the system's own PNG datatype can show true "
+              "colour pictures in full colour, so on a machine with Picasso96 or CyberGraphX "
+              "the system's own PNG, GIF and BMP datatypes are never replaced: AmiDT's are "
+              "only added where the system has none.\n\n"
+              "The system's originals are kept in " bak " either way.")
+        (choices "New formats: TGA, PCX, ICO, QOI" p2text)
+        (default 3)))
+(if (= parts 0) (exit "Nothing was installed."))
+
+; ---- keep the system's originals, once: a later run finds the backup drawer and leaves it
+;      alone (it must never be overwritten with AmiDT's own classes)
+(if (not (exists bak))
+    (
+        (makedir bak)
+        (foreach cls "(png|gif|bmp|tga|pcx|ico|qoi).datatype"
+            (copyfiles (source (tackon cls @each-name)) (dest bak) (nogauge)))
+        (foreach dev "(TGA|PCX|ICO|QOI)"
+            (copyfiles (source (tackon dev @each-name)) (dest bak) (nogauge)))
+    ))
+(complete 20)
+
+(if (bitand parts 1)
+    (
+        (copyfiles (prompt "The new formats")
+                   (source "Classes/DataTypes") (dest cls)
+                   (choices "tga.datatype" "pcx.datatype" "ico.datatype" "qoi.datatype")
+                   (help @copyfiles-help))
+        (copyfiles (source "DEVS/DataTypes") (dest dev)
+                   (choices "TGA" "PCX" "ICO" "QOI") (nogauge))
+    ))
+(complete 60)
+(if (bitand parts 2)
+    (
+        (set replaced 0)
+        (foreach "Classes/DataTypes" "(png|gif|bmp).datatype"
+            (if (or (not rtg) (not (exists (tackon cls @each-name))))
+                (
+                    (if (exists (tackon cls @each-name)) (set replaced 1))
+                    (copyfiles (source (tackon "Classes/DataTypes" @each-name)) (dest cls) (nogauge))
+                )))
+        ; OS 3.0/3.1 know none of the three: give them the descriptors too (3.2's own are kept)
+        (foreach "DEVS/DataTypes" "(PNG|GIF|BMP)"
+            (if (not (exists (tackon dev @each-name)))
+                (
+                    (copyfiles (source (tackon "DEVS/DataTypes" @each-name)) (dest dev) (nogauge))
+                    (textfile (dest (tackon bak (cat "added-" @each-name))) (append "added by AmiDT\n"))
+                )))
+    ))
+(complete 80)
+
+; ---- tell datatypes.library about the new descriptors (no reboot needed for those)
+(if (exists "C:AddDataTypes")
+    (run "C:AddDataTypes REFRESH QUIET"))
+
+; ---- JPEG: AmiDT has no JPEG class; JFIFdt44 (Aminet gfx/show) is the fast one
+(set jpegmsg "")
+(if (exists (tackon cls "jfif.datatype"))
+    (
+        (if (not (exists "ENVARC:classes")) (makedir "ENVARC:classes"))
+        (if (not (exists "ENVARC:classes/datatypes")) (makedir "ENVARC:classes/datatypes"))
+        (if (not (exists "ENV:classes")) (makedir "ENV:classes"))
+        (if (not (exists "ENV:classes/datatypes")) (makedir "ENV:classes/datatypes"))
+        (textfile (dest "ENVARC:classes/datatypes/jfif44.prefs") (append "V42MODE DITHER=ORDERED\n"))
+        (textfile (dest "ENV:classes/datatypes/jfif44.prefs") (append "V42MODE DITHER=ORDERED\n"))
+        (set jpegmsg "\n\nJFIFdt44 was found: it is now set to make 256-colour pictures with an ordered dither (the fast setting).")
+    )
+    (set jpegmsg "\n\nFor fast JPEG pictures install JFIFdt44 from Aminet (gfx/show/JFIFdt44.lha) and run this installer again: it sets JFIFdt44 up the fast way."))
+(complete 100)
+
+(exit "AmiDT is installed." jpegmsg
+      (if (and (bitand parts 2) replaced) "\n\nReboot once so programs use the new PNG, GIF and BMP classes (the old ones may still be in memory)." "")
+      (if (and (bitand parts 2) rtg) "\n\nThis Amiga has a graphics card: the system's own PNG, GIF and BMP datatypes were kept." ""))

@@ -1,0 +1,7 @@
+*.tmp
+aminet/x/
+out/
+ref/
+test/*.idx
+test/corpus/
+test/host_png

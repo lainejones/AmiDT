@@ -1,0 +1,11 @@
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.gif binary
+*.bmp binary
+*.tif binary
+*.pcx binary
+*.tga binary
+*.ico binary
+*.webp binary
+*.lha binary
