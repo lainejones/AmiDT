@@ -10,7 +10,6 @@ AmiDT/
 import os, shutil, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
-TOOLS = r'C:\projects\tools'
 sys.path.insert(0, HERE)
 from mkclasses import FORMATS
 
@@ -33,18 +32,12 @@ def main():
     for f in ('Install_AmiDT', 'ReadMe'):
         copy(os.path.join(ROOT, 'install', f), os.path.join(OUT, f))
     copy(os.path.join(ROOT, 'LICENSE'), os.path.join(OUT, 'LICENSE'))
-    sys.path.insert(0, TOOLS)
-    import iconlib, makeicon_doc as doc, makeicon_drawer as drw, makeicon_install as mi
-    open(OUT + '.info', 'wb').write(
-        iconlib.build_info(drw.build_cidx(), drw.PALETTE, drw.PLANAR_MAP, drw.W, drw.H, drw.TRANSPARENT, drawer=True))
-    open(os.path.join(OUT, 'ReadMe.info'), 'wb').write(
-        iconlib.build_info(doc.build_cidx(), doc.PALETTE, doc.PLANAR_MAP, doc.W, doc.H, doc.TRANSPARENT,
-                           icon_type=4, default_tool=doc.DEFAULT_TOOL))
-    open(os.path.join(OUT, 'Install_AmiDT.info'), 'wb').write(
-        iconlib.build_info(mi.build_cidx(), mi.PALETTE, mi.PLANAR_MAP, mi.W, mi.H, mi.TRANSPARENT,
-                           icon_type=4, default_tool='Installer',
-                           tool_types=['APPNAME=AmiDT', 'SCRIPT=Install_AmiDT', 'DEFUSER=AVERAGE',
-                                       'MINUSER=AVERAGE', 'LOG=FALSE']))
+    # The icons are finished .info files in install/ (made once with the author's icon
+    # writer; to change one, regenerate it there and commit the new file). The drawer's
+    # own icon goes BESIDE the drawer, or Workbench doesn't show it.
+    for f in ('ReadMe.info', 'Install_AmiDT.info'):
+        copy(os.path.join(ROOT, 'install', f), os.path.join(OUT, f))
+    copy(os.path.join(ROOT, 'install', 'AmiDT.info'), OUT + '.info')
     n = sum(len(fs) for _, _, fs in os.walk(os.path.dirname(OUT)))
     size = sum(os.path.getsize(os.path.join(b, f)) for b, _, fs in os.walk(os.path.dirname(OUT)) for f in fs)
     print('package: %s  (%d files, %d KB)' % (OUT, n, size // 1024))
